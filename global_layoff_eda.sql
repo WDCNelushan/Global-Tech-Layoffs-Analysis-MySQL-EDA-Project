@@ -57,3 +57,33 @@ WHERE total_laid_off IS NOT NULL
 GROUP BY country
 ORDER BY 2 DESC;
 
+-- What was the total layoff count per year?
+SELECT YEAR(`date`) AS Year, SUM(total_laid_off) AS total_laid_off
+FROM cleaned_layoffs
+WHERE YEAR(`date`) IS NOT NULL
+GROUP BY YEAR(`date`)
+ORDER BY 1 ASC;
+
+-- What was the total layoff count per month?
+SELECT DATE_FORMAT(`date`, '%Y-%m') AS Month_Year, SUM(total_laid_off) AS total_laid_off
+FROM cleaned_layoffs
+WHERE total_laid_off IS NOT NULL AND DATE_FORMAT(`date`, '%Y-%m') IS NOT NULL
+GROUP BY Month_Year
+ORDER BY Month_Year ASC;
+    
+-- What is the Rolling Total of layoffs per month?
+WITH Monthly_Layoffs AS (
+    --  Group by Year-Month and sum the layoffs
+    SELECT 
+        DATE_FORMAT(`date`, '%Y-%m') AS Month_Year, 
+        SUM(total_laid_off) AS total_laid_off
+    FROM cleaned_layoffs
+    WHERE total_laid_off IS NOT NULL AND DATE_FORMAT(`date`, '%Y-%m') IS NOT NULL
+    GROUP BY Month_Year
+    ORDER BY Month_Year ASC
+)
+-- Calculate the rolling total using a Window Function
+SELECT Month_Year, total_laid_off, SUM(total_laid_off) OVER (ORDER BY Month_Year ASC) AS rolling_total
+FROM Monthly_Layoffs;
+
+
