@@ -86,4 +86,54 @@ WITH Monthly_Layoffs AS (
 SELECT Month_Year, total_laid_off, SUM(total_laid_off) OVER (ORDER BY Month_Year ASC) AS rolling_total
 FROM Monthly_Layoffs;
 
+-- top companies with the most layoffs per year
+SELECT company, YEAR(`date`) AS year, SUM(total_laid_off) AS total_laid_off
+FROM cleaned_layoffs
+WHERE total_laid_off IS NOT NULL
+GROUP BY company, YEAR(`date`)
+ORDER BY 3 DESC;
 
+-- Which companies lost the highest percentage of their workforce?
+SELECT company, percentage_laid_off
+FROM cleaned_layoffs
+WHERE percentage_laid_off IS NOT NULL
+ORDER BY 2 DESC
+LIMIT 10;
+
+--  How do layoffs correlate with the company's funding stage?
+SELECT stage, SUM(total_laid_off) AS total_laid_off
+FROM cleaned_layoffs
+WHERE total_laid_off IS NOT NULL
+GROUP BY stage
+ORDER BY 2 DESC;
+
+-- Which companies raised the most money but still laid off a ton of people?
+SELECT company, funds_raised_millions, SUM(total_laid_off) AS total_laid_off
+FROM cleaned_layoffs
+WHERE total_laid_off IS NOT NULL AND funds_raised_millions IS NOT NULL
+GROUP BY company, funds_raised_millions
+ORDER BY 2 DESC
+LIMIT 10;
+
+-- Rank the top 5 companies with the most layoffs per year
+WITH Company_Year AS (
+    SELECT 
+        company, 
+        YEAR(`date`) AS year, 
+        SUM(total_laid_off) AS total_laid_off
+    FROM cleaned_layoffs
+    WHERE total_laid_off IS NOT NULL
+    GROUP BY company, YEAR(`date`)
+),
+Ranked_Layoffs AS (
+    SELECT 
+        company, 
+        year, 
+        total_laid_off,
+        DENSE_RANK() OVER (PARTITION BY year ORDER BY total_laid_off DESC) AS ranking
+    FROM Company_Year
+)
+SELECT * 
+FROM Ranked_Layoffs
+WHERE ranking <= 5 AND year IS NOT NULL
+ORDER BY year, ranking;
